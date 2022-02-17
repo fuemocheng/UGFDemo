@@ -1,14 +1,9 @@
 {
-    "name": "UnityGameFramework.Editor",
-    "references": [
-        "UnityGameFramework.Runtime",
-        "NewAssembly"
-    ],
-    "includePlatforms": [
-        "Editor"
-    ],
+    "name": "NewAssembly",
+    "references": [],
+    "includePlatforms": [],
     "excludePlatforms": [],
-    "allowUnsafeCode": false,
+    "allowUnsafeCode": true,
     "overrideReferences": false,
     "precompiledReferences": [],
     "autoReferenced": true,

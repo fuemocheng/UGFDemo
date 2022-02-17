@@ -77,7 +77,7 @@ namespace UnityGameFramework.Runtime
             m_SceneManager.UnloadSceneSuccess += OnUnloadSceneSuccess;
             m_SceneManager.UnloadSceneFailure += OnUnloadSceneFailure;
 
-            m_GameFrameworkScene = UnityEngine.SceneManagement.SceneManager.GetSceneAt(GameEntry.GameFrameworkSceneId);
+            m_GameFrameworkScene = SceneManager.GetSceneAt(GameEntry.GameFrameworkSceneId);
             if (!m_GameFrameworkScene.IsValid())
             {
                 Log.Fatal("Game Framework scene is invalid.");
@@ -407,7 +407,7 @@ namespace UnityGameFramework.Runtime
                     return;
                 }
 
-                Scene scene = UnityEngine.SceneManagement.SceneManager.GetSceneByName(GetSceneName(maxSceneName));
+                Scene scene = SceneManager.GetSceneByName(GetSceneName(maxSceneName));
                 if (!scene.IsValid())
                 {
                     Log.Error("Active scene '{0}' is invalid.", maxSceneName);
@@ -424,10 +424,10 @@ namespace UnityGameFramework.Runtime
 
         private void SetActiveScene(Scene activeScene)
         {
-            Scene lastActiveScene = UnityEngine.SceneManagement.SceneManager.GetActiveScene();
+            Scene lastActiveScene = SceneManager.GetActiveScene();
             if (lastActiveScene != activeScene)
             {
-                UnityEngine.SceneManagement.SceneManager.SetActiveScene(activeScene);
+                SceneManager.SetActiveScene(activeScene);
                 m_EventComponent.Fire(this, ActiveSceneChangedEventArgs.Create(lastActiveScene, activeScene));
             }
 

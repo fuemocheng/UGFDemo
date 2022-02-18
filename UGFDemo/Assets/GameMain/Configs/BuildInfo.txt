@@ -1,0 +1,10 @@
+{
+  "GameVersion": "0.1.0",
+  "InternalGameVersion": 0,
+  "CheckVersionUrl": "http://192.168.92.51/version.txt",
+  "WindowsAppUrl": "http://192.168.92.51/Windows/",
+  "MacOSAppUrl": "http://192.168.92.51/Windows/",
+  "IOSAppUrl": "http://192.168.92.51/Windows/",
+  "AndroidAppUrl": "http://192.168.92.51/Windows/",
+  "END_OF_JSON": ""
+}

@@ -44,40 +44,43 @@ UITowerListForm/UILevelSelectForm ->ShowItem()->回调设置在ScrollView 或者
 ### ShowItem() 是由 ItemLoader 来完成的
 
 ItemLoader : IReference  包装了回调, 根据ID寻找Item, 与Item是一对多的关系；可以说是Item的管理器
-ItemLoader->ShowItem()-> GameEntry.Item.ShowItem(serialId, itemId, userData);
+ItemLoader -> ShowItem() -> GameEntry.Item.ShowItem(serialId, itemId, userData);
 
 GameEntry.Item 即 ItemComponent
 ItemComponent : GameFrameworkComponent : MonoBehaviour
 
 ItemComponentExtension->ShowItem() 期间获取 ItemData 表数据信息
-->ItemComponent.ShowItem
-->ItemManager.ShowItem
-->ItemGroup.SpawnItemInstanceObject(itemAssetName) 
-	-> m_InstancePool.Spawn(name) -> ObjectPoolManager.ObjectPool.Spawn() 
+-> ItemComponent.ShowItem
+-> ItemManager.ShowItem
+-> ItemGroup.SpawnItemInstanceObject(itemAssetName) 
+	-> m_InstancePool.Spawn(name) -> ObjectPoolManager.ObjectPool.Spawn<T>() 
 	=>> ItemInstanceObject
 	ItemInstanceObject == null，则 ResourceManager.LoadAsset(itemAssetName...),
-		加载成功LoadAssetSuccessCallback->InternalShowItem()
+		加载成功 LoadAssetSuccessCallback -> InternalShowItem()
 	ItemInstanceObject != null, 则 InternalShowItem()
 	
 ### ItemInstanceObject : ObjectBase
 	object m_ItemAsset 			GameObject的索引
 	IItemHelper m_ItemHelper	
 
-DefaultItemHelper : ItemHelperBase(abstract) : MonoBehaviour
-实例化物体
-创建物体 	添加 Item 组件，设置父物体为 itemGroup.Helper.Transform
-释放物体	
+DefaultItemHelper : ItemHelperBase(abstract) : MonoBehaviour, IItemHelper
+a.实例化物体
+b.创建物体 	添加 Item 组件，设置父物体为 itemGroup.Helper.Transform
+c.释放物体	
 
 ### ItemGroup 为 ItemManager.ItemGroup
-IObjectPool<ItemInstanceObject> m_InstancePool 	对象池,对象回收在此GameObject下
 IItemGroupHelper m_ItemGroupHelper 				Item实体组辅助器
+												用来辅助创建ItemGroup GameObject
+												对象回收在此GameObject下
+IObjectPool<ItemInstanceObject> m_InstancePool 	对象池
 
+ItemGroup 提前创建
 ProcedurePreload->SetComponents()->SetItemComponent()->
     读取ItemGroup.txt表信息，GetAllItemGroupData()
     创建GameEntry.Item.AddItemGroup()
-
-IItemGroupHelper 用来辅助创建ItemGroup GameObject
-
+	Helper.CreateHelper -> (T)new GameObject().AddComponent(helperType); helperType = "UnityGameFramework.Runtime.DefaultItemGroupHelper";
+	ItemManager->AddItemGroup()
+	m_ItemGroups.Add(); [Dictionary<string, ItemGroup> m_ItemGroups]
 
 
 

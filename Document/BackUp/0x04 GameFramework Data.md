@@ -139,6 +139,7 @@ SceneData sceneData = GameEntry.Data.GetData<DataScene>().GetSceneData(sceneId);
 	DataScene : DataBase
 	DataScene->OnPreload()-> LoadDataTable("Scene")
 	DataBase.LoadDataTable()->
+	//从这里开始调用到0x03里的DataTable
 	GameEntry.DataTable.LoadDataTable(dataTableName, dataTableAssetName, this);
 
 6.GameEntry.DataTable
@@ -150,7 +151,7 @@ SceneData sceneData = GameEntry.Data.GetData<DataScene>().GetSceneData(sceneId);
 	DataTableBase dataTable = dataTableComponent.CreateDataTable(dataRowType, name)
 	dataTable.ReadData()->
 	
-	m_DataProvider.ReadData(dataTableAssetName, priority, userData)->
+	m_DataProvider.ReadData(dataTableAssetName, priority, userData)
 
 8.DataProvider
 	DataProvider->ReadData(string dataAssetName, int priority, object userData)
@@ -180,8 +181,10 @@ SceneData sceneData = GameEntry.Data.GetData<DataScene>().GetSceneData(sceneId);
 	->DataBase.OnLoad()
 	->每个e.g.DataScene类数据转换成需要的e.g.SceneData类，更方便获取
 
-# 8.Custom
-	可以自定义的模块
+Tips:
+	实际上还是先加载完DataTable,然后将DataTable的数据重新组织成Data;
+	DataScene : DataBase : Data : IData
+	最终数据还是存储在DataBase中，但获得的形式如e.g.SceneData;
 	
 	
 	

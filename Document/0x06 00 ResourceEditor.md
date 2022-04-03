@@ -37,12 +37,20 @@
 		再然后，把处理过的资源写回到硬盘上并把hash值保存到ResourceData中。
 		根据生成类型不同生成不同的VersionList写到对应的路径下。
 	
-		1.ProcessPackageVersionList()
-		
-		2.ProcessUpdatableVersionList()
-		
+		1.ProcessPackageVersionList() 单机包
+			GameFrameworkVersion.dat
+		2.ProcessUpdatableVersionList()	更新版本数据包
+			GameFrameworkVersion.dat
 		3.ProcessReadOnlyVersionList()
-	
+			GameFrameworkList.dat
+## 3.	
+
+
+
+
+
+## 4.
+
 
 
 

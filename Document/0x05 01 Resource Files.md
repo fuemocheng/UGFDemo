@@ -7,6 +7,8 @@ Asset: 用于描述Unity中的一个具体资产，如一个预制体、一个�
 Resource:用于描述Unity中的一个 AssetBundle（一些 Asset 的集合），
 		或者一个GameFramework定义下的二进制文件（一个Asset的二进制形式，能够用于脱离Unity直接加载）
 
+FileSystem
+
 ## 2.VersionInfo ==> GameMain
 	bool ForceUpdateGame;				//是否需要强制更新游戏应用
 	string LatestGameVersion;			//最新的游戏版本号

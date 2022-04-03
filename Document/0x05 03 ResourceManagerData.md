@@ -2,7 +2,7 @@
 
 
 ## 1.ResourceName ==> GameFramework.Resource 资源名称 ResourceManager.ResourceName.cs
-
+	为Struct
 	public ResourceName(string name, string variant, string extension)
 	
 	string m_Name;				//资源名称
@@ -14,6 +14,7 @@
 	string ToString();			// return FullName;
 	
 ## 2.AssetInfo ==> GameFramework.Resource 资源信息 ResourceManager.AssetInfo.cs
+	为Class
 	
 	//资源名称，所在资源名称，依赖资源名称
 	public AssetInfo(string assetName, ResourceName resourceName, string[] dependencyAssetNames)
@@ -23,6 +24,7 @@
 	string[] m_DependencyAssetNames;	//依赖资源名称
 	
 ## 3.ResourceInfo ==> GameFramework.Resource 资源信息 ResourceManager.ResourceInfo.cs 
+	为Class
 	
 	public ResourceInfo(ResourceName resourceName, string fileSystemName, LoadType loadType, 
 		int length, int hashCode, int compressedLength, bool storageInReadOnly, bool ready)
@@ -37,6 +39,7 @@
 	bool m_Ready;					//资源是否准备完毕
 	
 ## 4.ResourceGroup ==> GameFramework.Resource 资源组 ResourceManager.ResourceGroup.cs
+	为Struct
 	
 	//资源组名称，资源信息引用
 	public ResourceGroup(string name, Dictionary<ResourceName, ResourceInfo> resourceInfos)
@@ -60,10 +63,21 @@
 	bool HasResource(ResourceName resourceName);				//检查指定资源是否属于资源组
 	void AddResource(ResourceName resourceName, int length, int compressedLength);		//向资源组中增加资源
 
+## 5.ReadWriteResourceInfo ==> GameFramework.Resource ==> ResourceManager.ReadWriteResourceInfo.cs
+	为Struct
+	
+	public ReadWriteResourceInfo(string fileSystemName, LoadType loadType, int length, int hashCode)
 
+	string m_FileSystemName;
+	LoadType m_LoadType;
+	int m_Length;
+	int m_HashCode;
 
-
-
+	bool UseFileSystem;
+	string FileSystemName;
+	LoadType LoadType;
+	int Length;
+	int HashCode;
 
 
 

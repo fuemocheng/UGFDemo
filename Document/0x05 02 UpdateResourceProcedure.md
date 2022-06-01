@@ -359,6 +359,14 @@
 		m_DownloadManager.AddDownload(ResourcePath, RemotePath, UpdateInfo)
 		
 	4.OnDownloadSuccess() 下载成功
+		1.下载的数据已经下载并存储到指定目录
+		2.回调参数是UpdateInfo
+		UpdateInfo updateInfo = e.UserData as UpdateInfo;
+		3.判断下载的资源是否是压缩文件
+		读取下载地址的文件流;
+		如果文件流的长度和updateInfo.CompressedLength
+		
+		
 		
 		
 	5.bool ApplyResource(ApplyInfo applyInfo)

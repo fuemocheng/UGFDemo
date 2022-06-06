@@ -36,15 +36,21 @@ FileSystem
 	const string RemoteVersionListFileName = "GameFrameworkVersion.dat";
 	const string LocalVersionListFileName = "GameFrameworkList.dat";
 	
+## 5.GameFrameworkVersion.XXXX.dat
+	首先资源列表文件事实上一共有三份，
+	总表 GameFrameworkVersion.XXXX.dat;
+	只读目录 GameFreamworkList.dat;
+	读写目录 GameFreamworkList.dat; 这份文件记录的是最后一次更新完毕后读写目录中的资源文件信息
+	（如果你的应用程序是第一次启动，且没有更新过资源，那么这一份文件也是不存在的，但是如果你成功的更新过资源，则由GF框架自动为你生成 ）
 
-## 5.GameFrameworkVersion.dat
+### 5.1 GameFrameworkVersion.dat
 	UpdatableVersionList
 
 	
-## 6.GameFrameworkList.dat
+### 5.2.GameFrameworkList.dat
 	LocalVersionList
 	
-## 7.
+## 6.
 
 
 

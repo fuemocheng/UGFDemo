@@ -31,6 +31,7 @@
 		1.订阅WebRequest成功失败事件
 		2.向服务器请求版本信息
 		GameEntry.WebRequest.AddWebRequest(GameEntry.BuiltinData.BuildInfo.CheckVersionUrl);
+		->GameEntry.BuiltinData.BuildInfo 为 Assets/GameMain/Configs/BuildInfo.txt
 		->BuildInfo.CheckVersionUrl ==> "https://starforce.gameframework.cn/Resources/{0}Version.txt"
 		3.OnWebRequestSuccess()->
 		解析版本信息
@@ -44,7 +45,7 @@
 	使用可更新模式并检查版本资源列表
 	//最新的内部资源版本号
 	ResourceManager.VersionListProcessor.CheckVersionList(int latestInternalResourceVersion)
-		1.可读写路径是否存在
+		1.可读写路径(ReadWritePath，即persistentDataPath)是否存在, 不存在，抛出异常
 		2.Application.persistentDataPath + "GameFrameworkVersion.dat" 是否存在
 			不存在，则需要更新
 		3.读取 "GameFrameworkVersion.dat" ，并序列化出 InternalResourceVersion 内部资源版本号字段
@@ -103,9 +104,11 @@
 		Update()中完成
 		ChangeState<ProcedureVerifyResources>(procedureOwner);
 	
-### 3.3 ProcedureVerifyResources 校验资源
-	主要是确保本地资源和 LocalVersionList 是相对应的;
-	本地可读写路径下的资源列表是 "GameFrameworkList.dat";
+### 3.3 ProcedureVerifyResources 校验资源，验证资源
+	主要是确保可读写路径下的"GameFrameworkList.dat"记录的数据，
+	与可读写路径下的本地数据比如"GameData.dat","UI.dat","Resources.dat","GameFrameworkSetting.dat"中记录的数据保持一致；
+	
+	如果数据出错，则删除相应的"GameFrameworkList.dat"中的记录，和"GameData.dat"等中的文件;
 
 	ProcedureVerifyResources.OnEnter()
 	->GameEntry.Resource.VerifyResources()
@@ -124,10 +127,12 @@
 	反序列化
 	LocalVersionList versionList = m_ResourceManager.m_ReadWriteVersionListSerializer.Deserialize()
 	
-	3.构造 List<VerifyInfo> m_VerifyInfos
-	遍历versionList.GetFileSystems() --> FileSystem[]
-		构造Dictionary<ResourceName, string> resourceInFileSystemNames;
-	遍历versionList.GetResources() -->  Resource[]
+	3.构造 List<VerifyInfo> m_VerifyInfos，m_VerifyInfos是单个变体资源信息的集合
+	构造字典ResourceName<->文件系统名		Dictionary<ResourceName, string> resourceInFileSystemNames; 		
+	遍历 versionList.GetFileSystems() --> FileSystem[]
+		...
+		resourceInFileSystemNames.Add(new ResourceName(...))
+	遍历 versionList.GetResources() -->  Resource[]
 		m_VerifyInfos.Add(new VerifyInfo(...))
 	
 	m_LoadReadWriteVersionListComplete = true
@@ -144,17 +149,22 @@
 	
 	4.1 校验单个资源 bool VerifyResource(VerifyInfo verifyInfo)
 	当 verifyInfo.UseFileSystem 为 true
-		根据verifyInfo.FileSystemName获取文件系统
-		根据verifyInfo.ResourceName.FullName获取FileSystem.FileInfo fileInfo
+		根据verifyInfo.FileSystemName获取文件系统，比如"GameData";
+		根据verifyInfo.ResourceName.FullName获取FileSystem.FileInfo fileInfo;
 		若fileInfo有效，则继续，否则返回False
 		fileSystem读取数据流，判断hashcode，字节流长度等是否和verifyInfo记录的一致
 		一致则返回true
-		否则删除无效的数据段
+		否则删除有误的数据段；
+		同时返回false, 且 m_VerifyInfos.RemoveAt(m_VerifyResourceIndex); 即m_VerifyInfos删除这一条
+		
+		这里是文件系统中，比如"GameData"，删除出错的数据段；
+		
 	当 verifyInfo.UseFileSystem 为 false
 		获取resourcePath，读取文件流
 		判断数据流长度和hashcode
 		一致则返回true
-		否则删除无效的数据段
+		否则删除有误的数据段;
+		同时返回false, 且 m_VerifyInfos.RemoveAt(m_VerifyResourceIndex); 即m_VerifyInfos删除这一条
 		
 	4.2 当VerifyResource校验成功，不断循环，校验下一个
 		当VerifyResource校验失败，则记录m_FailureFlag为true;
@@ -164,6 +174,11 @@
 		
 	5.GenerateReadWriteVersionList
 		根据 m_VerifyInfos ，重新生成LocalVersionList
+		
+		先创建一个GameFrameworkList.tmp文件；
+		遍历m_VerifyInfos，写入缓存字典中;
+		根据缓存创建LocalVersionList,写入"GameFrameworkList.tmp"中;
+		删除原有的"GameFrameworkList.dat"，将"GameFrameworkList.tmp"改为"GameFrameworkList.dat"
 	
 	6.Update()中校验完成，回调ResourceVerifyComplete()
 	->ResourceManager.OnVerifierResourceVerifyComplete()
@@ -174,7 +189,11 @@
 		
 ### 3.4 ProcedureCheckResources
 	主要是检查资源并构造要更新的资源
-
+	ReadWritePath -> GameFrameworkVersion.dat	总表，以此为准
+	ReadOnlyPath -> GameFrameworkList.dat
+	ReadWritePath -> GameFrameworkList.dat
+	对比这三个表;
+	
 	ProcedureCheckResources.OnEnter()
 	->GameEntry.Resource.CheckResources(OnCheckResourcesComplete);
 	->ResourceManager.CheckResources(...)	//使用可更新模式并检查资源
@@ -196,13 +215,14 @@
 #### 3.4.2 OnLoad...Success ==> ResourceManager.ResourceChecker
 	1.OnLoadUpdatableVersionListSuccess
 	读取完成 ReadWritePath + RemoteVersionListFileName	"GameFrameworkVersion.dat"
-	反序列换成 UpdatableVersionList versionList;
+	反序列换成 UpdatableVersionList versionList 实例;
+	读取UpdatableVersionList.Asset[], UpdatableVersionList.Resource[], UpdatableVersionList.ResourceGroup[];
 	
 	遍历 UpdatableVersionList.FileSystem fileSystem;
 		遍历 fileSystem.GetResourceIndexes() -> int[] resourceIndexes;
 			构造ResourceName;
 			设置临时缓存资源所在的文件系统名称;
-			SetCachedFileSystemName();
+			SetCachedFileSystemName();	创建并设置CheckInfo.m_VersionInfo;
 	
 	遍历 UpdatableVersionList.Resource resource;
 		构造 ResourceName;
@@ -212,7 +232,7 @@
 			根据以上数据构造AssetInfo并添加到ResourceManager的 m_AssetInfos 中,
 			m_ResourceManager.m_AssetInfos.Add(...);
 		
-		设置资源在版本中的信息
+		设置CheckInfo.m_VersionInfo
 		SetVersionInfo(...)
 		defaultResourceGroup.AddResource();
 	
@@ -227,9 +247,23 @@
 	m_UpdatableVersionListReady = true;
     RefreshCheckInfoStatus();
 	
+	总结
+	重建ResourceManager中所有的资源信息，并设置当前资源版本号与本列表文件相同;
+	m_ResourceManager.m_ApplicableGameVersion
+	m_ResourceManager.m_InternalResourceVersion
+	m_ResourceManager.m_AssetInfos
+	m_ResourceManager.m_ResourceInfos
+	创建默认空名的ResourceGroup加入到m_ResourceManager.m_ResourceGroups中;
+	
+	根据UpdatableVersionList.Resource[]数据构建ResourceName，创建并设置CheckInfo.m_VersionInfo;
+	根据UpdatableVersionList.Asset[]构建AssetInfo添加到m_ResourceManager.m_AssetInfos中,
+	为默认名为空的ResourceGroup加入所有的ResourceName及其文件长度和zip包长度信息;
+	根据UpdatableVersionList.ResourceGroup[]建立ResourceGroup加入m_ResourceManager.m_ResourceGroups中，
+	并为其加入所属的ReourceName及其文件长度和zip长度信息;
+	
 	2.OnLoadReadOnlyVersionListSuccess
 	读取完成 ReadOnlyPath + LocalVersionListFileName	"GameFrameworkList.dat"
-	反序列化成 LocalVersionList;
+	反序列化成 LocalVersionList 实例;
 	
 	遍历 LocalVersionList.FileSystem fileSystem;
 		遍历 fileSystem.GetResourceIndexes() -> int[] resourceIndexes;
@@ -238,7 +272,7 @@
 			设置临时缓存资源所在的文件系统名称;
 			SetCachedFileSystemName()
 	遍历 LocalVersionList.Resource resource;
-		设置资源在只读区中的信息
+		设置CheckInfo.m_ReadOnlyInfo
 		SetReadOnlyInfo()
 	
 	m_ReadOnlyVersionListReady = true;
@@ -246,7 +280,7 @@
 	
 	3.OnLoadReadWriteVersionListSuccess
 	读取完成 ReadWritePath + LocalVersionListFileName	"GameFrameworkList.dat"
-	反序列化成 LocalVersionList;
+	反序列化成 LocalVersionList 实例;
 
 	遍历 LocalVersionList.FileSystem fileSystem;
 		遍历 fileSystem.GetResourceIndexes() -> int[] resourceIndexes;
@@ -254,10 +288,10 @@
 			构造ResourceName;
 			设置临时缓存资源所在的文件系统名称;
 			SetCachedFileSystemName()
-	
 	遍历 LocalVersionList.Resource resource;
-		设置资源在读写区中的信息
+		设置CheckInfo.m_ReadWriteInfo
 		SetReadOnlyInfo()
+		--创建ReadWriteResourceInfo并和ResourceName一起添加到m_ResourceManager.m_ReadWriteResourceInfos中;
 
 	m_ReadWriteVersionListReady = true;
     RefreshCheckInfoStatus();
@@ -275,13 +309,13 @@
 				如果 m_ReadOnlyInfo.Exist 为true，即只读区资源存在，
 					并且 m_ReadOnlyInfo 与 m_VersionInfo信息相同，则
 					m_Status = CheckStatus.StorageInReadOnly;
-                    m_NeedRemove = m_ReadWriteInfo.Exist;	即可读写区存在这个资源，只读区这个资源可删掉
+                    m_NeedRemove = m_ReadWriteInfo.Exist;	即可读写区也存在这个资源的话，可读写区这个资源删掉
 				如果 m_ReadWriteInfo.Exist 为true, 即读写区资源存在，
 					并且 m_ReadWriteInfo 与 m_VersionInfo信息相同，则
 					m_Status = CheckStatus.StorageInReadWrite;
 					并且判断是否在同一文件系统中，
-					是否需要将读写区的资源移动到磁盘
-					是否需要将读写区的资源移动到文件系统
+					是否需要将读写区的资源移动到磁盘，将指定文件存为物理文件	--*
+					是否需要将读写区的资源移动到文件系统						--*
 				否则 
 					m_Status = CheckStatus.Update;
                     m_NeedRemove = m_ReadWriteInfo.Exist;
@@ -330,7 +364,6 @@
 	-> m_UpdateCandidateInfo.Add(ResourceName, UpdateInfo)
 	
 	接下来交由更新器
-	
 
 ### 3.5 ProcedureUpdateResources
 	ProcedureUpdateResources.OnEnter()

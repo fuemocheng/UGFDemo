@@ -347,9 +347,14 @@
 	资源检查完成
 	ResourceCheckComplete() 
 	->ResourceManager.OnCheckerResourceCheckComplete()
-	->m_CheckResourcesCompleteCallback()
-	->ProcedureCheckResources.OnCheckResourcesComplete()
-		m_CheckResourcesComplete = true;
+		1.m_ResourceUpdater.CheckResourceComplete()
+			在未更新前，根据是否有删除和移动，调用GenerateReadWriteVersionList(),
+			根据m_ResourceManager.m_ReadWriteResourceInfos，构建LocalVersionList实例，
+			并序列化到"{读写目录}/GameFrameworkList.dat.tmp"文件中，用于备份最后一次更新的版本信息;
+			最后重命名为GameFrameworkList.dat;
+		2.m_CheckResourcesCompleteCallback()	
+			ProcedureCheckResources.OnCheckResourcesComplete()
+			m_CheckResourcesComplete = true;
 	
 	ProcedureCheckResources.OnUpdate()
 		需要更新 m_NeedUpdateResources
@@ -363,8 +368,13 @@
 	->m_ResourceUpdater.AddResourceUpdate(...)
 	-> m_UpdateCandidateInfo.Add(ResourceName, UpdateInfo)
 	
+	1.添加需要更新的资源文件信息，由ResourceChecker核对资源文件时，通过ResourceManager调用;
+	2.resourcePath参数为下载后，资源文件存储在本地的路径，"{读写目录/{ResourceName.FullName}}",
+	因为ResourceChecker会在核对操作最后删除需要更新的文件在本地的当前副本，所以即使后面提交下载也没问题;
+	3.根据参数创建对应的UpdateInfo,并添加到候选队列 m_UpdateCandidateInfo, 等待后续调用更新;
+	
 	接下来交由更新器
-
+	
 ### 3.5 ProcedureUpdateResources
 	ProcedureUpdateResources.OnEnter()
 	-> 	GameEntry.UI.OpenDialog 是否更新
@@ -375,10 +385,18 @@
 		-> m_ResourceUpdater.UpdateResources(resourceGroup);
 		
 #### 3.5.1 ResourceUpdater
-	1.更新指定资源组的资源, 初始资源组 string.Empty
+	1.更新指定资源组的资源, 默认资源组 string.Empty
 	void UpdateResources(ResourceGroup resourceGroup)
+		参数resourceGroup指定更新哪个资源组
+		
 		如果resourceGroup.Name 为 IsNullOrEmpty，则
-		将所有候补更新信息m_UpdateCandidateInfo，添加到m_UpdateWaitingInfo；
+		将所有候补更新信息m_UpdateCandidateInfo，添加到m_UpdateWaitingInfo;
+		ResourceManager中所有的ResourceInfo都强制属于一个默认的空名资源组;
+		
+		如果指定了普通资源组，则既在此资源组，又在 m_UpdateCandidateInfo中的updateInfo,
+		添加到m_UpdateWaitingInfo;
+		
+		设置当前的更新资源组m_UpdatingResourceGroup;
 		
 	2.Update() 轮询
 		如果 m_ApplyWaitingInfo 数量大于 0 ，则
@@ -389,22 +407,39 @@
 			DownloadResource(m_UpdateWaitingInfo[i]);
 	
 	3.bool DownloadResource(UpdateInfo updateInfo)
+		拼接远程文件地址"{m_ResourceManager.m_UpdatePrefixUri}/Name.Varent.HashCode.dat";
+		调用DownloadManager下载，
 		m_DownloadManager.AddDownload(ResourcePath, RemotePath, UpdateInfo)
+		增加 m_UpdatingCount;
 		
 	4.OnDownloadSuccess() 下载成功
 		1.下载的数据已经下载并存储到指定目录
 		2.回调参数是UpdateInfo
 		UpdateInfo updateInfo = e.UserData as UpdateInfo;
-		3.判断下载的资源是否是压缩文件
-		读取下载地址的文件流;
-		如果文件流的长度和updateInfo.CompressedLength
-		
-		
-		
+		3.核对zip长度->核对ZipHashCode->解码->核对长度->核对HashCode;
+		4.核对成功，如果使用文件系统，写入文件系统;
+		5.减少更新总数;
+		6.m_ResourceManager.m_ResourceInfos的资源MarkReady();
+		7.m_ResourceManager.m_ReadWriteResourceInfos添加此资源
+		8.回调显示更新进度, ResourceUpdateSuccess.Invoke()
+		9.判断是否无可更新的，如果全部更新完成，则调用GenerateReadWriteVersionList(),
+		重建备份版本列表文件;
+		10.如果有失败，重新下载RetryCount次数;
+		11.回调更新完成
 		
 	5.bool ApplyResource(ApplyInfo applyInfo)
+		--TODO
 		
-		
+	6.回调更新完成
+		ProcedureUpdateResources.OnUpdateResourcesComplete()
+			m_UpdateResourcesComplete = true;
+		ProcedureUpdateResources.OnUpdate()
+			ChangeState<ProcedurePreload>(procedureOwner);
+			
+### 3.5 ProcedurePreload
+	游戏逻辑
+	
+	
 		
 	
 	
